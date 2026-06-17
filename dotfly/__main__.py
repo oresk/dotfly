@@ -55,14 +55,14 @@ def main() -> None:
     )
     parser.add_argument(
         "-u", "--user",
-        default="root",
-        help="Remote SSH user (default: root). Also used for local home resolution.",
+        default=None,
+        help="SSH user (default: root if omitted, or from ~/.ssh/config host block).",
     )
     parser.add_argument(
         "--port",
         type=int,
         default=22,
-        help="SSH port (default: 22)",
+        help="SSH port (default: 22, or from ~/.ssh/config host block)",
     )
     parser.add_argument(
         "-n", "--dry-run",
@@ -94,7 +94,11 @@ def main() -> None:
     print(f"dotfly — config: {config_path}")
     print(f"         profile: {profile_name}")
     if is_remote:
-        print(f"         remote: {args.user}@{args.host}:{args.port}")
+        # Resolve user for display
+        display_user = args.user if args.user is not None else "root"
+        user_label = f"{display_user}@" if display_user else ""
+        port_label = f":{args.port}" if args.port != 22 else ""
+        print(f"         remote: {user_label}{args.host}{port_label}")
     if args.dry_run:
         print("         *** DRY RUN — no changes will be made ***")
     print()
@@ -114,16 +118,21 @@ def main() -> None:
 
     if is_remote:
         # Remote provisioning
+        # --user '' (empty) means "use SSH config's User"
+        remote_user = args.user
+        if remote_user is None:
+            remote_user = "root"
         provisioner = RemoteProvisioner(
             host=args.host,
-            user=args.user,
+            user=remote_user,
             port=args.port,
             repo_path=repo_root,
         )
         provisioner.provision(profile_name, dry_run=args.dry_run)
     else:
-        # Local provisioning
-        home = resolve_home(args.user)
+        # Local provisioning — default to current user
+        local_user = args.user or os.environ.get("USER", "root")
+        home = resolve_home(local_user)
 
         # Expand {{ home }} in file destinations
         expanded_files = [

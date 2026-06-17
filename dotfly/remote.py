@@ -6,6 +6,9 @@ Workflow:
   2. SSH into remote → install git
   3. rsync the local repo (including .git) to the remote
   4. Execute `dotfly --profile <name>` on the remote (local provisioning mode)
+
+SSH config: dotfly respects ~/.ssh/config. If you don't pass --user or --port,
+those will be picked up from your SSH config Host block.
 """
 
 import subprocess
@@ -33,13 +36,21 @@ def check_ssh_agent() -> None:
 
 
 class RemoteProvisioner:
-    """Handles the remote side of provisioning."""
+    """Handles the remote side of provisioning.
+
+    Args:
+        host: Hostname or SSH alias (required).
+        repo_path: Local path to the dotfly repo.
+        user: SSH user (None = let ~/.ssh/config decide).
+        port: SSH port (22 = let ~/.ssh/config decide).
+        remote_dir: Directory on the remote to sync to.
+    """
 
     def __init__(
         self,
         host: str,
         repo_path: Path,
-        user: str = "root",
+        user: str | None = None,
         port: int = 22,
         remote_dir: str | None = None,
     ):
@@ -47,22 +58,32 @@ class RemoteProvisioner:
         self.user = user
         self.port = port
         self.repo_path = repo_path.resolve()
-        self.remote_dir = remote_dir or self._default_remote_dir()
+        self.remote_dir = remote_dir or "~/dotfly"
 
-    @staticmethod
-    def _default_remote_dir() -> str:
-        return "/root/dotfly"
+    def _ssh_base_args(self) -> list[str]:
+        """Build the base SSH arguments from config settings.
 
-    def _remote_cd_command(self) -> str:
-        """Return the cd command prefix with proper tilde handling."""
-        if self.remote_dir.startswith("~"):
-            # Don't quote ~ so the remote shell can expand it
-            return f"cd {self.remote_dir}"
-        return f"cd {shlex.quote(self.remote_dir)}"
+        Only adds -p and -o options when they differ from defaults,
+        so ~/.ssh/config Host blocks take precedence.
+        """
+        args: list[str] = [
+            "-o", "StrictHostKeyChecking=accept-new",
+            "-o", "ConnectTimeout=10",
+        ]
+        if self.port != 22:
+            args = ["-p", str(self.port)] + args
+        return args
 
     @property
     def ssh_dest(self) -> str:
-        return f"{self.user}@{self.host}"
+        """Return the SSH destination string.
+
+        If user is empty or None, omit the user@ prefix so
+        ~/.ssh/config can supply the User.
+        """
+        if self.user:
+            return f"{self.user}@{self.host}"
+        return self.host
 
     def ssh(
         self,
@@ -73,14 +94,9 @@ class RemoteProvisioner:
         tty: bool = False,
     ) -> subprocess.CompletedProcess:
         """Run a command on the remote machine via SSH."""
-        ssh_cmd = [
-            "ssh",
-            "-p", str(self.port),
-            "-o", "StrictHostKeyChecking=accept-new",
-            "-o", "ConnectTimeout=10",
-        ]
+        ssh_cmd = ["ssh"] + self._ssh_base_args()
         if tty:
-            ssh_cmd.append("-t")  # Force PTY for interactive commands (sudo)
+            ssh_cmd.append("-t")
         ssh_cmd.extend([self.ssh_dest, command])
 
         kwargs = {}
@@ -89,6 +105,14 @@ class RemoteProvisioner:
             kwargs["text"] = True
 
         return subprocess.run(ssh_cmd, check=check, **kwargs)
+
+    def _rsync_e_args(self) -> str:
+        """Return the -e argument for rsync, respecting SSH config."""
+        parts = ["ssh"]
+        if self.port != 22:
+            parts.extend(["-p", str(self.port)])
+        parts.extend(["-o", "StrictHostKeyChecking=accept-new"])
+        return " ".join(parts)
 
     def ensure_prerequisites(self) -> None:
         """Check Python version and install git/rsync on the remote if needed."""
@@ -101,7 +125,7 @@ class RemoteProvisioner:
         )
         if py_check.returncode == 255:
             raise RuntimeError(
-                f"Cannot connect to {self.ssh_dest}:{self.port}. "
+                f"Cannot connect to {self.ssh_dest}. "
                 "Check the hostname and your network connection."
             )
         if py_check.returncode != 0:
@@ -141,22 +165,20 @@ class RemoteProvisioner:
 
         # Ensure parent directory exists on remote
         if self.remote_dir.startswith("~"):
-            mkdir_cmd = f"mkdir -p {self.remote_dir}"
+            self.ssh(f"mkdir -p {self.remote_dir}", check=False)
         else:
-            mkdir_cmd = f"mkdir -p {shlex.quote(self.remote_dir)}"
-        self.ssh(mkdir_cmd, check=False)
+            self.ssh(f"mkdir -p {shlex.quote(self.remote_dir)}", check=False)
 
         rsync_cmd = [
             "rsync",
             "-avz",
             "--delete",
-            # Include .git so the remote has git history and origin URL
             "--exclude", "__pycache__",
             "--exclude", "*.pyc",
             "--exclude", ".venv",
             "--exclude", "venv",
-            "-e", f"ssh -p {self.port} -o StrictHostKeyChecking=accept-new",
-            f"{self.repo_path}/",  # trailing slash copies contents
+            "-e", self._rsync_e_args(),
+            f"{self.repo_path}/",
             f"{self.ssh_dest}:{self.remote_dir}/",
         ]
         result = subprocess.run(rsync_cmd, capture_output=True, text=True)
@@ -167,7 +189,11 @@ class RemoteProvisioner:
 
     def _dotfly_command(self) -> str:
         """Return the command to run dotfly on the remote machine."""
-        return f"{self._remote_cd_command()} && python3 -m dotfly"
+        if self.remote_dir.startswith("~"):
+            cd_cmd = f"cd {self.remote_dir}"
+        else:
+            cd_cmd = f"cd {shlex.quote(self.remote_dir)}"
+        return f"{cd_cmd} && python3 -m dotfly"
 
     def execute_remote(self, profile_name: str, *, dry_run: bool = False) -> None:
         """Execute dotfly provisioning on the remote machine."""
@@ -186,7 +212,8 @@ class RemoteProvisioner:
 
     def provision(self, profile_name: str, *, dry_run: bool = False) -> None:
         """Full remote provisioning workflow."""
-        print(f"\n=== Remote provisioning: {self.user}@{self.host} ===\n")
+        label = self.ssh_dest if not self.user else f"{self.user}@{self.host}"
+        print(f"\n=== Remote provisioning: {label} ===\n")
 
         if dry_run:
             print("  *** DRY RUN — no SSH commands will be executed ***\n")
