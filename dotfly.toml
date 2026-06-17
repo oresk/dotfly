@@ -6,19 +6,19 @@
 # File modes:
 #   link    — symlink to repo file (default)
 #   copy    — copy file from repo
-#   append  — append source content to destination
-#   prepend — prepend source content to destination
+#   append  — append source content to destination (idempotent)
+#   prepend — prepend source content to destination (idempotent)
 
+# ──────────────────────────────────────────────
+# base — essentials for any Debian machine
+# ──────────────────────────────────────────────
 [profile.base]
 description = "Essential tools and dotfiles for any machine"
 
-[profile.desktop]
-description = "Extends base with desktop/dev tools"
-inherit = "base"
-
-[profile.server]
-description = "Minimal server profile"
-inherit = "base"
+[[profile.base.tools]]
+name = "neovim"
+package = "neovim"
+method = "apt"
 
 [[profile.base.tools]]
 name = "bat"
@@ -30,22 +30,22 @@ name = "eza"
 package = "eza"
 method = "apt"
 
-[[profile.desktop.tools]]
+[[profile.base.tools]]
 name = "tmux"
 package = "tmux"
 method = "apt"
 
-[[profile.desktop.tools]]
+[[profile.base.tools]]
 name = "fzf"
 package = "fzf"
 method = "apt"
 
-[[profile.desktop.tools]]
+[[profile.base.tools]]
 name = "zoxide"
 package = "zoxide"
 method = "apt"
 
-[[profile.desktop.tools]]
+[[profile.base.tools]]
 name = "fd-find"
 package = "fd-find"
 method = "apt"
@@ -55,11 +55,14 @@ name = "ripgrep"
 package = "ripgrep"
 method = "apt"
 
-# .bashrc: append our additions to whatever already exists on the machine.
-# The source file contains only the extra bits (aliases, PATH, etc.)
 [[profile.base.files]]
 source = "dotfiles/bashrc-additions.sh"
 dest = "{{ home }}/.bashrc"
+mode = "append"
+
+[[profile.base.files]]
+source = "dotfiles/aliases.sh"
+dest = "{{ home }}/.bash_aliases"
 mode = "append"
 
 [[profile.base.files]]
@@ -67,16 +70,50 @@ source = "dotfiles/.gitconfig"
 dest = "{{ home }}/.gitconfig"
 mode = "link"
 
+[[profile.base.files]]
+source = "dotfiles/git/ignore"
+dest = "{{ home }}/.config/git/ignore"
+mode = "link"
 
+# ──────────────────────────────────────────────
+# desktop — extends base with GUI/WM configs
+# ──────────────────────────────────────────────
+[profile.desktop]
+description = "Desktop environment (Hyprland, Waybar, Alacritty, etc.)"
+inherit = "base"
 
-# Append bash_aliases content rather than overwriting
 [[profile.desktop.files]]
-source = "dotfiles/aliases.sh"
-dest = "{{ home }}/.bash_aliases"
-mode = "append"
+source = "dotfiles/config/hypr"
+dest = "{{ home }}/.config/hypr"
+mode = "link"
 
+[[profile.desktop.files]]
+source = "dotfiles/config/waybar"
+dest = "{{ home }}/.config/waybar"
+mode = "link"
 
-[[profile.server.tools]]
-name = "tmux"
-package = "tmux"
-method = "apt"
+[[profile.desktop.files]]
+source = "dotfiles/config/scripts"
+dest = "{{ home }}/.config/scripts"
+mode = "link"
+
+[[profile.desktop.files]]
+source = "dotfiles/config/starship.toml"
+dest = "{{ home }}/.config/starship.toml"
+mode = "link"
+
+[[profile.desktop.files]]
+source = "dotfiles/config/alacritty/alacritty.toml"
+dest = "{{ home }}/.config/alacritty/alacritty.toml"
+mode = "link"
+
+[[profile.desktop.files]]
+source = "dotfiles/config/mako/config"
+dest = "{{ home }}/.config/mako/config"
+mode = "link"
+
+# ──────────────────────────────────────────────
+# server — empty, for manual configuration
+# ──────────────────────────────────────────────
+[profile.server]
+description = "Minimal server (no extra tools or files)"

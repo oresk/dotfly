@@ -1,0 +1,79 @@
+add_newline = false
+
+format = """
+[╭─](default)\
+$status\
+[\\[](default)\
+$username\
+$hostname\
+[\\]─\\[](default)\
+$directory\
+[\\]](default)\
+$git_branch\
+$git_status\
+$package\
+$rust\
+$python\
+$nodejs\
+$golang\
+$cmd_duration\
+$line_break\
+[╰──▸ ](default)"""
+
+[status]
+format = "[\\[](default)[✗](red)[\\]─](default)"
+disabled = false
+symbol = ""
+
+[username]
+format = "[$user](green)[@](default)"
+show_always = true
+
+[hostname]
+format = "[$hostname](bright-cyan)"
+ssh_only = false
+
+[directory]
+format = "[$path](green)"
+truncation_length = 0
+truncate_to_repo = false
+home_symbol = "~"
+
+# Git branch with Nerd Font icon
+[git_branch]
+format = " [ $branch](default)"
+symbol = ""
+
+# Compact dirty state indicators
+[git_status]
+format = '([ \[$all_status$ahead_behind\]](yellow))'
+conflicted = "="
+ahead = "↑$count"
+behind = "↓$count"
+diverged = "↕↑$ahead_count↓$behind_count"
+untracked = "?"
+stashed = "≡"
+modified = "!"
+staged = "+"
+renamed = "»"
+deleted = "✘"
+
+[package]
+format = " [📦 $version](208)"
+
+[rust]
+format = " [🦀 $version](red)"
+
+[python]
+format = " [🐍 $version](yellow)"
+
+[nodejs]
+format = " [ $version](green)"
+
+[golang]
+format = " [ $version](cyan)"
+
+# Show duration of long commands
+[cmd_duration]
+format = " [took $duration](bright-black)"
+min_time = 2_000

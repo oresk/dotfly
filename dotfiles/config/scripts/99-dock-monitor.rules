@@ -1,0 +1,3 @@
+# Dock undock detection via USB device removal
+# When the ThinkPad dock USB hub is removed, trigger eDP-1 re-enable
+ACTION=="remove", SUBSYSTEM=="usb", ENV{ID_VENDOR_ID}=="17ef", ENV{ID_MODEL_ID}=="3073", RUN+="/usr/local/bin/dock-undock-helper.sh"

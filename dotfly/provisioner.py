@@ -62,17 +62,19 @@ def _apply_file_mode(
     dry_run: bool = False,
 ) -> None:
     """Apply a single file mapping according to its mode."""
-    # link — symlink
+    # link — symlink (works for files and directories)
     if fm.mode == "link":
+        kind = "dir" if src.is_dir() else "file"
+
         if dst.exists() or dst.is_symlink():
             if dst.is_symlink() and os.readlink(dst) == str(src):
                 print(f"  Already linked: {dst}")
                 return
-            print(f"  Backing up existing: {dst} → {dst}.bak")
+            print(f"  Backing up existing {kind}: {dst} → {dst}.bak")
             dst.rename(dst.with_suffix(".bak"))
 
         dst.symlink_to(src)
-        print(f"  Linked: {src} → {dst}")
+        print(f"  Linked {kind}: {src} → {dst}")
         return
 
     # copy — regular file copy

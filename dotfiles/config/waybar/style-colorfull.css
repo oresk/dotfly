@@ -1,0 +1,133 @@
+* {
+    border: none;
+    border-radius: 3px;
+    font-family: Roboto,'Font Awesome 5', 'SFNS Display',  Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    min-height: 0;
+}
+
+window#waybar {
+    background: rgba(0, 0, 0, 1);
+    color: #ffffff;
+}
+
+window#waybar.hidden {
+    opacity: 0.0;
+}
+/* https://github.com/Alexays/Waybar/wiki/FAQ#the-workspace-buttons-have-a-strange-hover-effect */
+#workspaces button {
+    border-radius: 0;
+    padding: 1px 1px;
+    background: transparent;
+    color: #ffffff;
+    border-bottom: 3px solid transparent;
+}
+
+#workspaces button.active {
+    background: #64727D;
+    border-bottom: 3px solid #ffffff;
+}
+
+#workspaces button.urgent {
+    background-color: #eb4d4b;
+    border-bottom: 3px solid transparent;
+}
+
+#mode {
+    background: #64727D;
+    border-bottom: 3px solid #ffffff;
+}
+
+#custom-timew,
+#clock, 
+#battery, 
+#cpu, 
+#memory, 
+#temperature, 
+#network, 
+#pulseaudio, 
+#tray, 
+#mode, 
+#backlight { 
+    padding: 0 5px;
+    margin: 0 5px;
+}
+
+#clock {
+    background-color: #64727D;
+}
+
+#custom-timew.tracking {
+    color: #00ff00;
+}
+
+#battery {
+    background-color: #ffffff;
+    color: #000000;
+}
+
+#battery.charging {
+    color: #ffffff;
+    background-color: #26A65B;
+}
+
+#battery.critical:not(.charging) {
+    background: #f53c3c;
+    color: #ffffff;
+    animation-name: blink;
+    animation-duration: 0.5s;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+}
+
+@keyframes blink {
+    to {
+        background-color: #ffffff;
+        color: #000000;
+    }
+}
+
+#cpu {
+    background: #2ecc71;
+    color: #000000;
+}
+
+#memory {
+    background: #9b59b6;
+}
+
+#backlight {
+    background: #90b1b1;
+}
+
+#network {
+    background: #2980b9;
+}
+
+#network.disconnected {
+    background: #f53c3c;
+}
+
+#pulseaudio {
+    background: #f1c40f;
+    color: #000000;
+}
+
+#pulseaudio.muted {
+    background: #90b1b1;
+    color: #2a5c45;
+}
+
+#temperature {
+    background: #f0932b;
+}
+
+#temperature.critical {
+    background: #eb4d4b;
+}
+
+#tray {
+    background-color: #2980b9;
+}
+

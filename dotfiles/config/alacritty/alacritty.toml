@@ -1,0 +1,32 @@
+
+[bell]
+animation = "Ease"
+color = "#ffffff"
+duration = 4
+
+[font]
+size = 13.0
+
+[font.normal]
+family = "JetBrains Mono NF"
+
+[font.offset]
+x = 0
+y = 0
+
+[scrolling]
+history = 100000
+
+[window]
+#opacity = 0.75
+opacity = 1
+
+[window.padding]
+x = 5
+y = 5
+
+[general]
+import = [
+    "~/.config/alacritty/alacritty-theme/themes/blood_moon.toml",
+    # "~/.config/alacritty/alacritty-theme/themes/alabaster.toml",
+]
