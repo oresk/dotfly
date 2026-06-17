@@ -1,0 +1,9 @@
+[project]
+name = "dotfly"
+version = "0.1.0"
+description = "Provision machines from a TOML config: install tools and symlink dotfiles"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+dotfly = "dotfly.__main__:main"

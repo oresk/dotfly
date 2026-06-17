@@ -1,0 +1,13 @@
+[user]
+	email = your-email@example.com
+	name = Your Name
+	# signingkey = ssh-ed25519 AAA... your key here
+
+[core]
+	editor = nano
+
+[push]
+	autoSetupRemote = true
+
+[init]
+	defaultBranch = main

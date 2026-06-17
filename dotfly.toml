@@ -1,0 +1,66 @@
+# dotfly configuration
+# Profiles define which tools to install and which dotfiles to symlink.
+# Profiles can inherit from each other.
+
+[profile.base]
+description = "Essential tools and dotfiles for any machine"
+
+[[profile.base.tools]]
+name = "bat"
+package = "bat"
+method = "apt"
+
+[[profile.base.tools]]
+name = "ripgrep"
+package = "ripgrep"
+method = "apt"
+
+[[profile.base.files]]
+source = "dotfiles/.bashrc"
+dest = "{{ home }}/.bashrc"
+
+[[profile.base.files]]
+source = "dotfiles/.gitconfig"
+dest = "{{ home }}/.gitconfig"
+
+[profile.desktop]
+description = "Extends base with desktop/dev tools"
+inherit = "base"
+
+[[profile.desktop.tools]]
+name = "eza"
+package = "eza"
+method = "apt"
+
+[[profile.desktop.tools]]
+name = "tmux"
+package = "tmux"
+method = "apt"
+
+[[profile.desktop.tools]]
+name = "fzf"
+package = "fzf"
+method = "apt"
+
+[[profile.desktop.tools]]
+name = "zoxide"
+package = "zoxide"
+method = "apt"
+
+[[profile.desktop.tools]]
+name = "fd-find"
+package = "fdfind"
+method = "apt"
+
+[[profile.desktop.files]]
+source = "dotfiles/.bash_aliases"
+dest = "{{ home }}/.bash_aliases"
+
+[profile.server]
+description = "Minimal server profile"
+inherit = "base"
+
+[[profile.server.tools]]
+name = "tmux"
+package = "tmux"
+method = "apt"
