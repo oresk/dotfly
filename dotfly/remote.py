@@ -99,6 +99,11 @@ class RemoteProvisioner:
             "python3 -c 'import sys; print(f\"{sys.version_info.major}.{sys.version_info.minor}\")'",
             check=False,
         )
+        if py_check.returncode == 255:
+            raise RuntimeError(
+                f"Cannot connect to {self.ssh_dest}:{self.port}. "
+                "Check the hostname and your network connection."
+            )
         if py_check.returncode != 0:
             raise RuntimeError(
                 "Python 3 is not installed on the remote machine. "
