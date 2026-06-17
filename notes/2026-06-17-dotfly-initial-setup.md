@@ -80,3 +80,14 @@ LXC CT 104 on faas (192.168.80.104, Debian 13)
 - Add non-apt package managers (pip, cargo, go, npm)
 - Add config validation
 - Possibly add `binary` field to tools for post-install verification
+
+## Sanitization (2026-06-17)
+
+Before pushing public, scrubbed personal info from tracked dotfiles:
+
+- **hyprland.conf**: replaced `/home/lovro/` with `~`, hardcoded UID with
+  `$XDG_RUNTIME_DIR`, commented out machine-specific `exec-once` lines
+- **dock-undock-helper.sh**: replaced `su lovro` with dynamic user detection
+  from `/run/user/*/hypr/` directories
+
+No tokens, passwords, API keys, or personal paths remain in the public repo.
