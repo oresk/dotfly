@@ -4,10 +4,13 @@
 # Profiles can inherit from each other.
 #
 # File modes:
-#   link    — symlink to repo file (default)
+#   link    — symlink to repo file or directory (default)
 #   copy    — copy file from repo
 #   append  — append source content to destination (idempotent)
 #   prepend — prepend source content to destination (idempotent)
+#
+# Tools can carry their config alongside them using config_source
+# and config_dest fields — no need for a separate [[files]] entry.
 
 # ──────────────────────────────────────────────
 # base — essentials for any Debian machine
@@ -55,6 +58,7 @@ name = "ripgrep"
 package = "ripgrep"
 method = "apt"
 
+# Files without a specific tool
 [[profile.base.files]]
 source = "dotfiles/bashrc-additions.sh"
 dest = "{{ home }}/.bashrc"
@@ -82,6 +86,32 @@ mode = "link"
 description = "Desktop environment (Hyprland, Waybar, Alacritty, etc.)"
 inherit = "base"
 
+# Tool + config grouped together
+[[profile.desktop.tools]]
+name = "alacritty"
+package = "alacritty"
+method = "apt"
+config_source = "dotfiles/config/alacritty/alacritty.toml"
+config_dest = "{{ home }}/.config/alacritty/alacritty.toml"
+config_mode = "link"
+
+[[profile.desktop.tools]]
+name = "waybar"
+package = "waybar"
+method = "apt"
+
+[[profile.desktop.tools]]
+name = "mako"
+package = "mako-notifier"
+method = "apt"
+config_source = "dotfiles/config/mako/config"
+config_dest = "{{ home }}/.config/mako/config"
+config_mode = "link"
+
+# hyprland (not in Debian repos — install via backports, nix, or build from source)
+# Config files are synced below in [[files]]
+
+# Desktop-specific configs (directories or multi-file)
 [[profile.desktop.files]]
 source = "dotfiles/config/hypr"
 dest = "{{ home }}/.config/hypr"
@@ -102,18 +132,8 @@ source = "dotfiles/config/starship.toml"
 dest = "{{ home }}/.config/starship.toml"
 mode = "link"
 
-[[profile.desktop.files]]
-source = "dotfiles/config/alacritty/alacritty.toml"
-dest = "{{ home }}/.config/alacritty/alacritty.toml"
-mode = "link"
-
-[[profile.desktop.files]]
-source = "dotfiles/config/mako/config"
-dest = "{{ home }}/.config/mako/config"
-mode = "link"
-
 # ──────────────────────────────────────────────
-# server — empty, for manual configuration
+# server — empty, for manual setup
 # ──────────────────────────────────────────────
 [profile.server]
 description = "Minimal server (no extra tools or files)"

@@ -13,21 +13,6 @@ from typing import Optional
 
 
 @dataclass
-class Tool:
-    name: str
-    package: str
-    method: str = "apt"
-
-    @classmethod
-    def from_dict(cls, d: dict) -> "Tool":
-        return cls(
-            name=d["name"],
-            package=d.get("package", d["name"]),
-            method=d.get("method", "apt"),
-        )
-
-
-@dataclass
 class FileMapping:
     source: str          # relative to repo root, e.g. "dotfiles/.bashrc"
     dest: str            # on the target filesystem, may contain {{ home }}
@@ -39,6 +24,41 @@ class FileMapping:
             source=d["source"],
             dest=d["dest"],
             mode=d.get("mode", "link"),
+        )
+
+
+@dataclass
+class Tool:
+    name: str
+    package: str
+    method: str = "apt"
+    config_source: str = ""
+    config_dest: str = ""
+    config_mode: str = "link"
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "Tool":
+        return cls(
+            name=d["name"],
+            package=d.get("package", d["name"]),
+            method=d.get("method", "apt"),
+            config_source=d.get("config_source", ""),
+            config_dest=d.get("config_dest", ""),
+            config_mode=d.get("config_mode", "link"),
+        )
+
+    def has_config(self) -> bool:
+        """Whether this tool has an associated config file to deploy."""
+        return bool(self.config_source and self.config_dest)
+
+    def to_file_mapping(self) -> FileMapping:
+        """Convert the tool's config into a FileMapping."""
+        if not self.has_config():
+            raise ValueError(f"Tool '{self.name}' has no config")
+        return FileMapping(
+            source=self.config_source,
+            dest=self.config_dest,
+            mode=self.config_mode,
         )
 
 
@@ -89,32 +109,33 @@ def resolve_profile(
     if inherit:
         parent = resolve_profile(raw_config, inherit, seen)
         result.tools = list(parent.tools)
-        # Build a map of parent files by dest for override logic
-        parent_files_by_dest: dict[str, FileMapping] = {}
-        for f in parent.files:
-            parent_files_by_dest[f.dest] = f
         result.files = list(parent.files)
 
     # Merge child's own tools and files
     child_tools = raw.get("tools", [])
     for t in child_tools:
-        result.tools.append(Tool.from_dict(t))
+        tool = Tool.from_dict(t)
+        result.tools.append(tool)
+        # If the tool has config, generate a FileMapping and add/override it
+        if tool.has_config():
+            fm = tool.to_file_mapping()
+            _override_or_append(result.files, fm)
 
     child_files = raw.get("files", [])
     for f in child_files:
         fm = FileMapping.from_dict(f)
-        # Override parent file with same dest AND same mode
-        idx = None
-        for i, existing in enumerate(result.files):
-            if existing.dest == fm.dest and existing.mode == fm.mode:
-                idx = i
-                break
-        if idx is not None:
-            result.files[idx] = fm
-        else:
-            result.files.append(fm)
+        _override_or_append(result.files, fm)
 
     return result
+
+
+def _override_or_append(files: list[FileMapping], fm: FileMapping) -> None:
+    """Helper: override existing file with same dest+mode, or append."""
+    for i, existing in enumerate(files):
+        if existing.dest == fm.dest and existing.mode == fm.mode:
+            files[i] = fm
+            return
+    files.append(fm)
 
 
 def expand_vars(text: str, home: str) -> str:
