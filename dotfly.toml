@@ -49,7 +49,7 @@ method = "apt"
 
 [[profile.desktop.tools]]
 name = "fd-find"
-package = "fdfind"
+package = "fd-find"
 method = "apt"
 
 [[profile.desktop.files]]

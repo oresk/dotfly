@@ -26,7 +26,7 @@ def install_tools(tools: list[Tool], *, dry_run: bool = False) -> None:
     sudo = _sudo_prefix()
     sudo_str = " ".join(sudo) + " " if sudo else ""
 
-    print(f"Installing apt packages: {', '.join(apt_packages)}")
+    print(f"Apt packages to install: {', '.join(apt_packages)}")
 
     if dry_run:
         print(f"  (dry-run) Would run: {sudo_str}apt install -y {' '.join(shlex.quote(p) for p in apt_packages)}")
@@ -34,19 +34,24 @@ def install_tools(tools: list[Tool], *, dry_run: bool = False) -> None:
 
     # Update apt cache first
     print("  Updating apt cache...")
-    subprocess.run(
-        sudo + ["apt", "update", "-qq"],
-        check=False,
-    )
+    subprocess.run(sudo + ["apt", "update", "-qq"], check=False)
 
-    # Install packages
-    cmd = sudo + ["apt", "install", "-y"] + apt_packages
-    print(f"  Running: {' '.join(shlex.quote(c) for c in cmd)}")
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    if result.returncode != 0:
-        print(f"  ERROR: apt install failed:\n{result.stderr}")
-        raise RuntimeError(f"apt install failed for packages: {apt_packages}")
-    print(f"  Done. ({len(apt_packages)} packages installed)")
+    # Install packages one by one for clearer error reporting
+    installed = 0
+    failed: list[str] = []
+    for pkg in apt_packages:
+        print(f"  Installing {pkg}...")
+        cmd = sudo + ["apt", "install", "-y", pkg]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            print(f"    FAILED: {result.stderr.strip()}")
+            failed.append(pkg)
+        else:
+            installed += 1
+
+    if failed:
+        raise RuntimeError(f"Failed to install packages: {', '.join(failed)}")
+    print(f"  Done. ({installed} packages installed)")
 
 
 def symlink_files(

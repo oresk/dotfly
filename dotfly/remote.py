@@ -91,9 +91,28 @@ class RemoteProvisioner:
         return subprocess.run(ssh_cmd, check=check, **kwargs)
 
     def ensure_prerequisites(self) -> None:
-        """Install git and rsync on the remote machine if not present."""
-        print("  Checking prerequisites (git, rsync)...")
+        """Check Python version and install git/rsync on the remote if needed."""
+        print("  Checking prerequisites...")
 
+        # Check Python version first
+        py_check = self.ssh(
+            "python3 -c 'import sys; print(f\"{sys.version_info.major}.{sys.version_info.minor}\")'",
+            check=False,
+        )
+        if py_check.returncode != 0:
+            raise RuntimeError(
+                "Python 3 is not installed on the remote machine. "
+                "Please install python3 (>= 3.11) and try again."
+            )
+        py_version = py_check.stdout.strip()
+        major, minor = py_version.split(".")
+        if int(major) < 3 or (int(major) == 3 and int(minor) < 11):
+            raise RuntimeError(
+                f"Remote has Python {py_version}, but Python >= 3.11 is required."
+            )
+        print(f"    Python {py_version} — OK")
+
+        # Check / install git and rsync
         missing = []
         for cmd in ("git", "rsync"):
             result = self.ssh(f"which {cmd}", check=False)
@@ -101,7 +120,7 @@ class RemoteProvisioner:
                 missing.append(cmd)
 
         if not missing:
-            print("    All prerequisites already installed")
+            print("    git, rsync — already installed")
             return
 
         print(f"    Installing: {', '.join(missing)}")
@@ -166,7 +185,7 @@ class RemoteProvisioner:
 
         if dry_run:
             print("  *** DRY RUN — no SSH commands will be executed ***\n")
-            print("  [1/3] Would install prerequisites (git, rsync) on remote (if missing)")
+            print("  [1/3] Would check Python + install prerequisites (git, rsync)")
             print("  [2/3] Would rsync repo to remote")
             print(f"  [3/3] Would run provisioning with profile '{profile_name}'")
             print(f"        → {self._dotfly_command()} --profile {profile_name}")
