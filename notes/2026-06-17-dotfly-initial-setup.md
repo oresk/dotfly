@@ -19,6 +19,10 @@ installs tools via apt and processes dotfiles from a git repo.
 - `{{ home }}` template variable expanded to target user's home
 - **File modes**: `link` (symlink, default), `copy`, `append`, `prepend`
 - Append/prepend use content-based dedup for idempotency
+- **Tool config grouping**: tools carry `config_source`, `config_dest`, `config_mode`
+  inline — no separate `[[files]]` entry needed for single-config tools
+- **Optional flag**: tools can be marked `optional = true`; failed installs
+  warn instead of aborting (useful for packages not in all repos)
 
 ## Project structure
 
@@ -32,9 +36,27 @@ installs tools via apt and processes dotfiles from a git repo.
 │   └── remote.py          ← SSH orchestration
 ├── dotfly.toml            ← configuration (profiles, tools, files)
 ├── dotfiles/
-│   ├── .gitconfig         ← symlinked (managed entirely by dotfly)
-│   ├── bashrc-additions.sh ← appended to ~/.bashrc (preserves existing)
-│   └── aliases.sh         ← appended to ~/.bash_aliases
+│   ├── .gitconfig         ← link (managed entirely by dotfly)
+│   ├── bashrc-additions.sh ← append to ~/.bashrc
+│   ├── aliases.sh         ← append to ~/.bash_aliases
+│   ├── git/
+│   │   └── ignore         ← link (global gitignore)
+│   └── config/
+│       ├── starship.toml  ← link
+│       ├── tmux/
+│       │   └── tmux.conf  ← link (grouped with tmux tool)
+│       ├── alacritty/
+│       │   └── alacritty.toml ← link (grouped with alacritty tool)
+│       ├── hypr/
+│       │   ├── hyprland.conf  ← link dir (grouped with hyprland tool)
+│       │   ├── hypridle.conf
+│       │   └── hyprlock.conf
+│       ├── waybar/
+│       │   ├── config         ← link dir (grouped with waybar tool)
+│       │   └── style*.css
+│       ├── mako/
+│       │   └── config     ← link (grouped with mako tool)
+│       └── scripts/       ← link dir (13 scripts)
 ├── pyproject.toml
 ├── .gitignore
 ├── notes/
@@ -45,17 +67,16 @@ installs tools via apt and processes dotfiles from a git repo.
 
 | Profile | Inherits | Tools | Files |
 |---------|----------|-------|-------|
-| `base` | — | bat, ripgrep | bashrc-additions.sh (append), .gitconfig (link) |
-| `desktop` | base | +eza, tmux, fzf, zoxide, fd-find | +aliases.sh (append) |
-| `server` | base | +tmux | — |
+| `base` | — | neovim, bat, eza, tmux (+config), fzf, zoxide, fd-find, rg | bashrc-additions (append), aliases (append), .gitconfig (link), git/ignore (link) |
+| `desktop` | base | +alacritty (+config), waybar (+config dir), mako (+config), hyprland (+config dir, optional) | +hypr dir (link), waybar dir (link), scripts dir (link), starship.toml (link) |
+| `server` | — | (empty) | (empty) |
 
 ## Test env
 
 LXC CT 104 on faas (192.168.80.104, Debian 13)
 
-## Todo
+## TODO
 
-- Push to GitHub
-- Add non-apt package managers
+- Add non-apt package managers (pip, cargo, go, npm)
 - Add config validation
 - Possibly add `binary` field to tools for post-install verification
