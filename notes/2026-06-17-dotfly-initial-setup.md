@@ -5,18 +5,20 @@ Date: 2026-06-17
 ## What
 
 dotfly is a Python tool that provisions machines from a TOML config:
-installs tools via apt and symlinks dotfiles from a git repo.
+installs tools via apt and processes dotfiles from a git repo.
 
 ## Design decisions
 
 - Profiles support inheritance via `inherit` key; child tools appended,
-  child files with same `dest` override parent's.
+  child files with same `dest`+`mode` override parent's.
 - No host info in TOML — provided via CLI `--host` flag
 - Remote transport: rsync entire repo (including `.git`) so remote
   retains origin URL and can `git pull` later
 - Zero external Python deps — uses stdlib only (tomllib for Python 3.11+)
 - Source paths in TOML are relative to repo root
 - `{{ home }}` template variable expanded to target user's home
+- **File modes**: `link` (symlink, default), `copy`, `append`, `prepend`
+- Append/prepend use content-based dedup for idempotency
 
 ## Project structure
 
@@ -26,37 +28,34 @@ installs tools via apt and symlinks dotfiles from a git repo.
 ├── dotfly/
 │   ├── __init__.py
 │   ├── config.py          ← TOML loading + profile resolution
-│   ├── provisioner.py     ← tool install + file symlink
-│   ├── remote.py          ← SSH orchestration
-│   └── __main__.py        ← CLI with argparse
+│   ├── provisioner.py     ← tool install + file processing (link/copy/append/prepend)
+│   └── remote.py          ← SSH orchestration
 ├── dotfly.toml            ← configuration (profiles, tools, files)
 ├── dotfiles/
-│   ├── .bashrc
-│   ├── .bash_aliases
-│   └── .gitconfig
+│   ├── .gitconfig         ← symlinked (managed entirely by dotfly)
+│   ├── bashrc-additions.sh ← appended to ~/.bashrc (preserves existing)
+│   └── aliases.sh         ← appended to ~/.bash_aliases
 ├── pyproject.toml
 ├── .gitignore
 ├── notes/
 └── README.md
 ```
 
-## Completed
+## Profiles
 
-- ✅ Project skeleton, TOML config, dotfiles
-- ✅ Profile resolution with inheritance (`inherit` key)
-- ✅ Local provisioning: `apt install` + symlink, sudo detection
-- ✅ Remote provisioning: SSH → git/rsync install → rsync repo → execute
-- ✅ LXC test container on faas (CT 104, 192.168.80.104, Debian 13)
-- ✅ End-to-end test: `base` and `desktop` profiles via remote
-- ✅ Python version check on remote (3.11+ required)
-- ✅ SSH connection error differentiation
-- ✅ Package-by-package install with targeted error messages
-- ✅ Dry-run mode (local + remote)
+| Profile | Inherits | Tools | Files |
+|---------|----------|-------|-------|
+| `base` | — | bat, ripgrep | bashrc-additions.sh (append), .gitconfig (link) |
+| `desktop` | base | +eza, tmux, fzf, zoxide, fd-find | +aliases.sh (append) |
+| `server` | base | +tmux | — |
 
-## Still to do
+## Test env
 
-- Push to a public GitHub repo
-- Support non-apt package managers (pip, cargo, etc.)
-- Test the `server` profile
-- Add config validation (duplicate destinations, etc.)
-- Possibly add `binary` field to tools for verification
+LXC CT 104 on faas (192.168.80.104, Debian 13)
+
+## Todo
+
+- Push to GitHub
+- Add non-apt package managers
+- Add config validation
+- Possibly add `binary` field to tools for post-install verification
