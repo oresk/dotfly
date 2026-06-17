@@ -39,19 +39,27 @@ def install_tools(tools: list[Tool], *, dry_run: bool = False) -> None:
     # Install packages one by one for clearer error reporting
     installed = 0
     failed: list[str] = []
-    for pkg in apt_packages:
-        print(f"  Installing {pkg}...")
+    for t in tools:
+        if t.method != "apt":
+            continue
+        pkg = t.package
+        print(f"  Installing {t.name} ({pkg})...")
         cmd = sudo + ["apt", "install", "-y", pkg]
         result = subprocess.run(cmd, capture_output=True, text=True)
         if result.returncode != 0:
-            print(f"    FAILED: {result.stderr.strip()}")
-            failed.append(pkg)
+            msg = result.stderr.strip()
+            if t.optional:
+                print(f"    WARNING: failed to install {pkg} (optional, skipping)")
+                print(f"      {msg}")
+            else:
+                print(f"    FAILED: {msg}")
+                failed.append(t.name)
         else:
             installed += 1
 
     if failed:
-        raise RuntimeError(f"Failed to install packages: {', '.join(failed)}")
-    print(f"  Done. ({installed} packages installed)")
+        raise RuntimeError(f"Failed to install required packages: {', '.join(failed)}")
+    print(f"  Done. ({installed} package(s) installed)")
 
 
 def _apply_file_mode(

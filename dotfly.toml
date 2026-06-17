@@ -37,6 +37,9 @@ method = "apt"
 name = "tmux"
 package = "tmux"
 method = "apt"
+config_source = "dotfiles/config/tmux/tmux.conf"
+config_dest = "{{ home }}/.config/tmux/tmux.conf"
+config_mode = "link"
 
 [[profile.base.tools]]
 name = "fzf"
@@ -99,6 +102,9 @@ config_mode = "link"
 name = "waybar"
 package = "waybar"
 method = "apt"
+config_source = "dotfiles/config/waybar"
+config_dest = "{{ home }}/.config/waybar"
+config_mode = "link"
 
 [[profile.desktop.tools]]
 name = "mako"
@@ -108,20 +114,16 @@ config_source = "dotfiles/config/mako/config"
 config_dest = "{{ home }}/.config/mako/config"
 config_mode = "link"
 
-# hyprland (not in Debian repos — install via backports, nix, or build from source)
-# Config files are synced below in [[files]]
+[[profile.desktop.tools]]
+name = "hyprland"
+package = "hyprland"
+method = "apt"
+optional = true
+config_source = "dotfiles/config/hypr"
+config_dest = "{{ home }}/.config/hypr"
+config_mode = "link"
 
 # Desktop-specific configs (directories or multi-file)
-[[profile.desktop.files]]
-source = "dotfiles/config/hypr"
-dest = "{{ home }}/.config/hypr"
-mode = "link"
-
-[[profile.desktop.files]]
-source = "dotfiles/config/waybar"
-dest = "{{ home }}/.config/waybar"
-mode = "link"
-
 [[profile.desktop.files]]
 source = "dotfiles/config/scripts"
 dest = "{{ home }}/.config/scripts"

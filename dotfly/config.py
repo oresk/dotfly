@@ -35,6 +35,7 @@ class Tool:
     config_source: str = ""
     config_dest: str = ""
     config_mode: str = "link"
+    optional: bool = False
 
     @classmethod
     def from_dict(cls, d: dict) -> "Tool":
@@ -45,6 +46,7 @@ class Tool:
             config_source=d.get("config_source", ""),
             config_dest=d.get("config_dest", ""),
             config_mode=d.get("config_mode", "link"),
+            optional=d.get("optional", False),
         )
 
     def has_config(self) -> bool:
