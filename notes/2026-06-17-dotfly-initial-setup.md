@@ -40,10 +40,23 @@ installs tools via apt and symlinks dotfiles from a git repo.
 └── README.md
 ```
 
-## Next steps
+## Completed
 
-1. Create LXC on faas for testing
-2. Test local provisioning
-3. Test remote provisioning
-4. Push to GitHub
-5. Iterate on tools/files as needed
+- ✅ Project skeleton, TOML config, dotfiles
+- ✅ Profile resolution with inheritance (`inherit` key)
+- ✅ Local provisioning: `apt install` + symlink, sudo detection
+- ✅ Remote provisioning: SSH → git/rsync install → rsync repo → execute
+- ✅ LXC test container on faas (CT 104, 192.168.80.104, Debian 13)
+- ✅ End-to-end test: `base` and `desktop` profiles via remote
+- ✅ Python version check on remote (3.11+ required)
+- ✅ SSH connection error differentiation
+- ✅ Package-by-package install with targeted error messages
+- ✅ Dry-run mode (local + remote)
+
+## Still to do
+
+- Push to a public GitHub repo
+- Support non-apt package managers (pip, cargo, etc.)
+- Test the `server` profile
+- Add config validation (duplicate destinations, etc.)
+- Possibly add `binary` field to tools for verification

@@ -73,12 +73,24 @@ dest = "{{ home }}/.bash_aliases"
 |-------|-------------|----------|
 | `source` | Path relative to repo root | Yes |
 | `dest` | Destination path; `{{ home }}` is expanded | Yes |
+| `mode` | `link` (default), `copy`, `append`, or `prepend` | No |
+
+**Modes:**
+- `link` — symlink the repo file to the destination (replaces existing)
+- `copy` — copy the repo file to the destination (replaces existing)
+- `append` — append the source file content to the destination (preserves existing)
+- `prepend` — prepend the source file content to the destination (preserves existing)
+
+For `append`/`prepend`, the source file should contain only the snippets you want to add.
+The script checks for duplicate content before appending, so running twice is safe.
 
 ### Inheritance rules
 
 - Child gets all tools and files from the parent
 - Child tools are appended
-- Child files with the same `dest` **override** the parent's
+- Child files with the same `dest` **and** `mode` **override** the parent's
+  - A `link` and an `append` to the same dest are treated as separate operations
+  - Two `link`s to the same dest: child wins
 - `inherit` chains are supported (grandparent → parent → child)
 - Circular inheritance raises an error
 

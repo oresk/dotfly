@@ -1,9 +1,24 @@
 # dotfly configuration
-# Profiles define which tools to install and which dotfiles to symlink.
+#
+# Profiles define which tools to install and which dotfiles to process.
 # Profiles can inherit from each other.
+#
+# File modes:
+#   link    — symlink to repo file (default)
+#   copy    — copy file from repo
+#   append  — append source content to destination
+#   prepend — prepend source content to destination
 
 [profile.base]
 description = "Essential tools and dotfiles for any machine"
+
+[profile.desktop]
+description = "Extends base with desktop/dev tools"
+inherit = "base"
+
+[profile.server]
+description = "Minimal server profile"
+inherit = "base"
 
 [[profile.base.tools]]
 name = "bat"
@@ -11,23 +26,6 @@ package = "bat"
 method = "apt"
 
 [[profile.base.tools]]
-name = "ripgrep"
-package = "ripgrep"
-method = "apt"
-
-[[profile.base.files]]
-source = "dotfiles/.bashrc"
-dest = "{{ home }}/.bashrc"
-
-[[profile.base.files]]
-source = "dotfiles/.gitconfig"
-dest = "{{ home }}/.gitconfig"
-
-[profile.desktop]
-description = "Extends base with desktop/dev tools"
-inherit = "base"
-
-[[profile.desktop.tools]]
 name = "eza"
 package = "eza"
 method = "apt"
@@ -52,13 +50,31 @@ name = "fd-find"
 package = "fd-find"
 method = "apt"
 
-[[profile.desktop.files]]
-source = "dotfiles/.bash_aliases"
-dest = "{{ home }}/.bash_aliases"
+[[profile.base.tools]]
+name = "ripgrep"
+package = "ripgrep"
+method = "apt"
 
-[profile.server]
-description = "Minimal server profile"
-inherit = "base"
+# .bashrc: append our additions to whatever already exists on the machine.
+# The source file contains only the extra bits (aliases, PATH, etc.)
+[[profile.base.files]]
+source = "dotfiles/bashrc-additions.sh"
+dest = "{{ home }}/.bashrc"
+mode = "append"
+
+[[profile.base.files]]
+source = "dotfiles/.gitconfig"
+dest = "{{ home }}/.gitconfig"
+mode = "link"
+
+
+
+# Append bash_aliases content rather than overwriting
+[[profile.desktop.files]]
+source = "dotfiles/aliases.sh"
+dest = "{{ home }}/.bash_aliases"
+mode = "append"
+
 
 [[profile.server.tools]]
 name = "tmux"

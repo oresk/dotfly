@@ -31,10 +31,15 @@ class Tool:
 class FileMapping:
     source: str          # relative to repo root, e.g. "dotfiles/.bashrc"
     dest: str            # on the target filesystem, may contain {{ home }}
+    mode: str = "link"   # link | copy | append | prepend
 
     @classmethod
     def from_dict(cls, d: dict) -> "FileMapping":
-        return cls(source=d["source"], dest=d["dest"])
+        return cls(
+            source=d["source"],
+            dest=d["dest"],
+            mode=d.get("mode", "link"),
+        )
 
 
 @dataclass
@@ -98,10 +103,10 @@ def resolve_profile(
     child_files = raw.get("files", [])
     for f in child_files:
         fm = FileMapping.from_dict(f)
-        # Override parent file with same dest
+        # Override parent file with same dest AND same mode
         idx = None
         for i, existing in enumerate(result.files):
-            if existing.dest == fm.dest:
+            if existing.dest == fm.dest and existing.mode == fm.mode:
                 idx = i
                 break
         if idx is not None:

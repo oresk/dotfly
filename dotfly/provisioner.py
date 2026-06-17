@@ -54,18 +54,89 @@ def install_tools(tools: list[Tool], *, dry_run: bool = False) -> None:
     print(f"  Done. ({installed} packages installed)")
 
 
-def symlink_files(
+def _apply_file_mode(
+    fm: FileMapping,
+    src: Path,
+    dst: Path,
+    *,
+    dry_run: bool = False,
+) -> None:
+    """Apply a single file mapping according to its mode."""
+    # link — symlink
+    if fm.mode == "link":
+        if dst.exists() or dst.is_symlink():
+            if dst.is_symlink() and os.readlink(dst) == str(src):
+                print(f"  Already linked: {dst}")
+                return
+            print(f"  Backing up existing: {dst} → {dst}.bak")
+            dst.rename(dst.with_suffix(".bak"))
+
+        dst.symlink_to(src)
+        print(f"  Linked: {src} → {dst}")
+        return
+
+    # copy — regular file copy
+    if fm.mode == "copy":
+        if dst.exists():
+            if dst.is_symlink():
+                dst.unlink()
+            else:
+                print(f"  Backing up existing: {dst} → {dst}.bak")
+                dst.rename(dst.with_suffix(".bak"))
+        import shutil
+        shutil.copy2(src, dst)
+        print(f"  Copied: {src} → {dst}")
+        return
+
+    # append — append source content to destination
+    if fm.mode == "append":
+        content = src.read_text()
+        if dst.exists():
+            existing = dst.read_text()
+            if content in existing:
+                print(f"  Already appended: {src} → {dst}")
+                return
+            with open(dst, "a") as f:
+                f.write("\n")
+                f.write(content)
+        else:
+            dst.write_text(content)
+        print(f"  Appended: {src} → {dst}")
+        return
+
+    # prepend — prepend source content to destination
+    if fm.mode == "prepend":
+        content = src.read_text()
+        if dst.exists():
+            existing = dst.read_text()
+            if content in existing:
+                print(f"  Already prepended: {src} → {dst}")
+                return
+            with open(dst, "w") as f:
+                f.write(content)
+                f.write("\n")
+                f.write(existing)
+        else:
+            dst.write_text(content)
+        print(f"  Prepended: {src} → {dst}")
+        return
+
+    print(f"  WARNING: Unknown mode '{fm.mode}' for {fm.source}, skipping")
+
+
+def process_files(
     files: list[FileMapping],
     repo_root: Path,
     home: str,
     *,
     dry_run: bool = False,
 ) -> None:
-    """Symlink dotfiles from the repo to their destinations.
+    """Process dotfiles: link, copy, append, or prepend from repo to destinations.
 
     For each file mapping:
       source: relative path within the repo (e.g. 'dotfiles/.bashrc')
       dest:   absolute path on the filesystem (e.g. '/home/user/.bashrc')
+      mode:   link | copy | append | prepend (default: link)
 
     Variables like {{ home }} in dest should already be expanded.
     """
@@ -78,23 +149,19 @@ def symlink_files(
             continue
 
         if dry_run:
-            print(f"  (dry-run) Would symlink: {src} → {dst}")
+            action = {
+                "link": f"Would symlink {src} → {dst}",
+                "copy": f"Would copy {src} → {dst}",
+                "append": f"Would append {src} → {dst}",
+                "prepend": f"Would prepend {src} → {dst}",
+            }.get(fm.mode, f"Would process {src} → {dst} (mode={fm.mode})")
+            print(f"  (dry-run) {action}")
             continue
 
         # Ensure parent directory exists
         dst.parent.mkdir(parents=True, exist_ok=True)
 
-        # Remove existing file/symlink if present
-        if dst.exists() or dst.is_symlink():
-            if dst.is_symlink() and os.readlink(dst) == str(src):
-                print(f"  Already linked: {dst}")
-                continue
-            print(f"  Backing up existing: {dst} → {dst}.bak")
-            dst.rename(dst.with_suffix(".bak"))
-
-        # Create the symlink
-        dst.symlink_to(src)
-        print(f"  Linked: {src} → {dst}")
+        _apply_file_mode(fm, src, dst, dry_run=dry_run)
 
 
 def provision_locally(
@@ -109,7 +176,7 @@ def provision_locally(
     print("=== Installing tools ===")
     install_tools(tools, dry_run=dry_run)
 
-    print("\n=== Symlinking dotfiles ===")
-    symlink_files(files, repo_root, home, dry_run=dry_run)
+    print("\n=== Processing dotfiles ===")
+    process_files(files, repo_root, home, dry_run=dry_run)
 
     print("\n=== Done ===")
